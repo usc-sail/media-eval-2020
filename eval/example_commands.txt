@@ -1,0 +1,9 @@
+python -u main.py --data_path ../../npy_data --splits_path ../../splits --model_save_path ../bce --use_mixup 1 --loss_function bce --sampling_type standard --num_workers 24
+
+&&
+
+python -u eval.py --data_path ../../npy_data/ --splits_path ../../splits/ --model_load_path ../bce/best_model.pth --use_val_split 0 --save_predictions 1 --save_path ../bce/test/ 
+
+&&
+
+python -u eval.py --data_path ../../npy_data/ --splits_path ../../splits/ --model_load_path ../bce/best_model.pth --use_val_split 1 --save_predictions 1 --save_path ../bce/val/ 
