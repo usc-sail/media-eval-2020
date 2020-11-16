@@ -12,7 +12,7 @@ This repo is based on the USC SAIL submission for MediaEval 2020 (https://multim
 
 ## Usage
 
-1. Given a directory of mp3 files, first run *resample2npy.py* to resample all files to 16 kHz.
+1. First run *resample2npy.py* to resample all mp3 files in given a directory to 16 kHz.
 	* python -u resample2npy.py run /path/to/mp3s/
 2. Create a .tsv file with music tag labels, as specified in *data_loader.py*. 
 3. Run *train.py*. The following example uses binary cross-entropy as the loss function, and also uses mixup (https://arxiv.org/pdf/1710.09412).
