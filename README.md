@@ -34,5 +34,5 @@ Our model is modified from the Short-Chunk CNN with Residual Connections present
 
 ## Dataset
 
-The low-level feature extract layers for the CNN were pretrained on the Million Song Dataset (http://millionsongdataset.com/). See our paper for implementation details.
+The low-level feature extract layers for the CNN were pretrained on the Million Song Dataset (http://millionsongdataset.com/). See our Working Notes paper for implementation details.
 We used the training, validation, and test splits as specified by the challenge. We combined our training set with instances with matching tags from the Music4All dataset (https://ieeexplore.ieee.org/document/9145170).
