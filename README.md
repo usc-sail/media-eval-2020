@@ -14,13 +14,13 @@ This repo is based on the USC SAIL submission for MediaEval 2020 (https://multim
 Given a directory of .mp3 files (such as the mood/theme split from MTG-Jamendo; https://github.com/MTG/mtg-jamendo-dataset), the following gives a brief usage example for training and evaluating a music tagging model:
 
 1. First run *resample2npy.py* to resample all mp3 files in the given directory to 16 kHz.
-	* python -u resample2npy.py run /path/to/mp3s/
+	* `python -u resample2npy.py run /path/to/mp3s/`
 2. Create a .tsv file with music tag labels, as specified in *data_loader.py*. 
 	- See *example_splits* for a examples on 
 3. Run *train.py*. The following example uses binary cross-entropy as the loss function, and also uses mixup (https://arxiv.org/pdf/1710.09412).
-	* python -u main.py --data_path /path/to/npy_data/ --splits_path /path/to/splits_tsvs/ --model_save_path /output/path/ --use_mixup 1 --loss_function bce --sampling_type standard 
+	* `python -u main.py --data_path /path/to/npy_data/ --splits_path /path/to/splits_tsvs/ --model_save_path /output/path/ --use_mixup 1 --loss_function bce --sampling_type standard` 
 4. Run *eval.py*. The following script will evaluate a trained model on the given test split.
-	* python -u eval.py --data_path /path/to/npy_data/ --splits_path /path/to/splits_tsvs/ --model_load_path /path/to/model/best_model.pth --use_val_split 0 --save_predictions 1 --save_path /output/path/
+	* `python -u eval.py --data_path /path/to/npy_data/ --splits_path /path/to/splits_tsvs/ --model_load_path /path/to/model/best_model.pth --use_val_split 0 --save_predictions 1 --save_path /output/path/`
 
 ## Loss functions
 
@@ -31,10 +31,10 @@ In this repository, we provide multiclass, multilabel implementations for the fo
 - Distribution-balanced loss (https://arxiv.org/abs/2007.09654)
 
 Loss functions are defined in *losses.py*. They can be specified as follows via the *loss_function* argument in *main.py*.
-- Binary cross-entropy: *bce*
-- Focal loss: *focal_loss*
-- Class-balanced focal loss: *cb_focal_loss*
-- Distribution-balanced focal loss: *db_focal_loss*
+- Binary cross-entropy: `bce`
+- Focal loss: `focal_loss`
+- Class-balanced focal loss: `cb_focal_loss`
+- Distribution-balanced focal loss: `db_focal_loss`
 
 ## Model
 
