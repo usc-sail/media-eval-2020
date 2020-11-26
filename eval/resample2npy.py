@@ -19,7 +19,7 @@ class Processor:
     # Find all mp3s contained in the given directory
 	def get_paths(self, data_path, output_path):
 		self.files = glob.glob(os.path.join(data_path, '**/*.mp3'), recursive=True)
-		self.npy_path = os.path.join(output_path, 'mtat', 'npy')
+		self.npy_path = os.path.join(output_path, 'npy')
 
 		if not os.path.exists(output_path):
 			os.makedirs(output_path)
@@ -30,7 +30,7 @@ class Processor:
 		return x
 
 	def iterate(self, data_path):
-		output_path = './m4a_npy_data' # Replace with desired output directory
+		output_path = './npy_data' # Replace with desired output directory
 		self.get_paths(data_path, output_path)
 		for fn in tqdm.tqdm(self.files):
 			output_fn = os.path.join(output_path, fn.split('/')[-1][:-3]+'npy')

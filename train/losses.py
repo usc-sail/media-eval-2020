@@ -45,7 +45,7 @@ def focal_loss(input: torch.Tensor, target: torch.Tensor, alpha: float = 0.25, g
 '''
 
 Args:
-input: A torch tensor of class predictions (sigmoid outputs). Shape: (batch_size, num_classes)
+input: A torch tensor of class predictions (logits if from_logits is True, else sigmoid outputs). Shape: (batch_size, num_classes)
 target: A torch tensor of binary ground truth labels. Shape: (batch_size, num_classes)
 
 alpha: Focal loss weight, as defined in https://arxiv.org/abs/1708.02002. Float.
@@ -60,19 +60,28 @@ Total loss as a single float value.
 
 class FocalLoss(nn.Module):
 
-    def __init__(self, alpha: float = 0.25, gamma: float = 2.0,
-                 reduction: str = 'none') -> None:
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0, 
+                 from_logits: bool = True, reduction: str = 'none') -> None:
         super(FocalLoss, self).__init__()
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.reduction: str = reduction
+        self.from_logits: bool = from_logits
         self.eps: float = 1e-8
 
     def forward(  # type: ignore
             self,
             input: torch.Tensor,
             target: torch.Tensor) -> torch.Tensor:
-        loss = focal_loss(input, target, self.alpha, self.gamma, eps = self.eps)
+        
+        # If necessary, apply an activation function to raw input logits
+        if self.from_logits:
+            y = torch.sigmoid(input)
+        else:
+            y = input
+        
+        loss = focal_loss(y, target, self.alpha, self.gamma, eps = self.eps)
+        
         if self.reduction == 'mean':
             return torch.mean(loss)
         elif self.reduction == 'sum':
@@ -117,7 +126,7 @@ def CB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, beta, ga
 '''
 
 Args:
-input: A torch tensor of class predictions (sigmoid outputs). Shape: (batch_size, num_classes)
+input: A torch tensor of class predictions (logits if from_logits is True, else sigmoid outputs). Shape: (batch_size, num_classes)
 target: A torch tensor of binary ground truth labels. Shape: (batch_size, num_classes)
 
 class_weights: Vector of integer class counts for the input training dataset. Shape: (1, num_classes)
@@ -137,12 +146,13 @@ class ClassBalancedLoss(nn.Module):
 
 
     def __init__(self, class_weights, beta: float, gamma: float = 2.0,
-                 reduction: str = 'none', loss_function: str = 'focal_loss') -> None:
+                 reduction: str = 'none', from_logits: bool = True, loss_function: str = 'focal_loss') -> None:
         super(ClassBalancedLoss, self).__init__()
         self.beta: float = beta
         self.gamma: float = gamma
         self.samples_per_class = torch.as_tensor(class_weights)
         self.no_of_classes = len(class_weights)
+        self.from_logits: bool = from_logits
         self.loss_function = loss_function
         self.reduction = reduction
 
@@ -150,7 +160,13 @@ class ClassBalancedLoss(nn.Module):
             input: torch.Tensor,
             target: torch.Tensor) -> torch.Tensor:
             
-        loss = CB_loss(input, target, self.samples_per_class, self.beta, self.gamma, self.loss_function)
+        # If necessary, apply an activation function to raw input logits
+        if self.from_logits:
+            y = torch.sigmoid(input)
+        else:
+            y = input
+            
+        loss = CB_loss(y, target, self.samples_per_class, self.beta, self.gamma, self.loss_function)
         
         if self.reduction == 'mean':
             return torch.mean(loss)
@@ -167,7 +183,30 @@ Both focal loss and BCE are implemented as possible base loss functions.
 Note that kappa here has been explicitly set to 0, to make working directly with sigmoid outputs easier (as opposed to using logits).
 '''
 
-def DB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, alpha = 0.25, gamma = 2., loss_function = 'focal_loss', r_alpha = 0.1, r_beta = 10., r_mu = 0.2, nt_lambda = 2.):
+def DB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, v_i = None, alpha = 0.25, gamma = 2., loss_function = 'focal_loss', r_alpha = 0.1, r_beta = 10., r_mu = 0.2, nt_lambda = 2.):
+
+    '''
+    Negative-tolerant regularization: apply the class-specific bias v_i to input logits. 
+    Additionally scale transformed negative logits by lambda.
+    
+    Note that if v_i is not given, explicitely set v_i to zero for all classes.
+    '''
+
+    if v_i == None:
+        num_classes = input.shape[-1]
+        v_i = torch.zeros(num_classes)
+    else:
+        v_i = torch.as_tensor(v_i)
+    v_i = v_i.to(target.device)
+    
+    os_input = input - v_i # offset input by class-specific bias
+    ls_input = ((target) + ((1 - target) * (nt_lambda))) * os_input  # Further scale negative logit
+    p_input = torch.sigmoid(ls_input) # Apply activation function to logits to get probabilities
+    
+    # nt_lambda is the regularizer for the negative terms
+    nt_lambda = (target) + ((1 - target) * (1./nt_lambda)) # scale the negative classes by 1/lambda
+
+    '''Rebalanced weighting'''
 
     # Rebalancing terms (r_k)
     freq_inv = (1./samples_per_cls).to(target.device)
@@ -176,15 +215,12 @@ def DB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, alpha = 
     # pos and neg are equally treated
     r_k = torch.sigmoid(r_beta * (pos_weight - r_mu)) + r_alpha
     
-    # nt_lambda is the regularizer for the negative terms
-    nt_lambda = (target) + ((1 - target) * (1./nt_lambda)) # scale the negative classes by 1/lambda
-    
-    if loss_function == 'focal_loss': # Modify focal loss
-        loss = focal_loss(input, target, alpha = alpha, gamma = gamma)
+    if loss_function == 'focal_loss': 
+        loss = focal_loss(p_input, target, alpha = alpha, gamma = gamma)
     
     elif loss_function == 'bce':
         criterion = nn.BCELoss(reduce=False)
-        loss = criterion(input, target)
+        loss = criterion(p_input, target)
     
     else:
         print('Invalid loss function specified in DistributionBalancedLoss.')
@@ -198,7 +234,7 @@ def DB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, alpha = 
 '''
 
 Args:
-input: A torch tensor of class predictions (sigmoid outputs). Shape: (batch_size, num_classes)
+input: A torch tensor of class predictions (logits). Shape: (batch_size, num_classes)
 target: A torch tensor of binary ground truth labels. Shape: (batch_size, num_classes)
 
 class_weights: vector of integer class counts for the input training dataset. Shape: (1, num_classes)
@@ -223,7 +259,7 @@ Total loss as a single float value.
 class DistributionBalancedLoss(nn.Module):
 
 
-    def __init__(self, class_weights, alpha: float = 0.25, gamma: float = 2.0,
+    def __init__(self, class_weights, v_i = None, alpha: float = 0.25, gamma: float = 2.0,
                   rebalance_alpha: float = 0.1, rebalance_beta: float = 10., rebalance_mu: float = 0.2,
                    nt_lambda: float = 2.,
                     reduction: str = 'none', loss_function: str = 'focal_loss') -> None:
@@ -231,23 +267,25 @@ class DistributionBalancedLoss(nn.Module):
         self.alpha: float = alpha
         self.gamma: float = gamma
         self.samples_per_class = class_weights
-        self.loss_function = loss_function
         
         self.r_alpha = rebalance_alpha
         self.r_beta = rebalance_beta
         self.r_mu = rebalance_mu
         
+        self.v_i = v_i
         self.nt_lambda = nt_lambda
         
+        self.loss_function = loss_function
         self.reduction = reduction
 
     def forward(self,
             input: torch.Tensor,
             target: torch.Tensor) -> torch.Tensor:
         
-        loss = DB_loss(input, target, self.samples_per_class, 
+        loss = DB_loss(input, target, self.samples_per_class, self.v_i,
                         self.alpha, self.gamma, self.loss_function, 
                          self.r_alpha, self.r_beta, self.r_mu, self.nt_lambda)
+                         
         
         if self.reduction == 'mean':
             return torch.mean(loss)

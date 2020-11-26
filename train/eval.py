@@ -119,6 +119,10 @@ class Predict(object):
             x = self.to_var(x)
             y = torch.tensor([ground_truth.astype('float32') for i in range(self.batch_size)]).cuda()
             out = self.model(x)
+            
+            # apply activation function to output logits 
+            out = torch.sigmoid(out)
+            
             loss = reconst_loss(out, y)
             losses.append(float(loss.data))
             out = out.detach().cpu()
@@ -150,7 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--model_load_path', type=str, default='.')
     parser.add_argument('--data_path', type=str, default='./data')
-    parser.add_argument('--splits_path', type=str, default='./../splits/')
+    parser.add_argument('--splits_path', type=str, default='./splits/')
 
     parser.add_argument('--use_val_split', type=int, default=0)
 

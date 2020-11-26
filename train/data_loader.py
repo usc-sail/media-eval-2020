@@ -140,7 +140,7 @@ class ClassAwareSampler(Sampler):
             
         self.num_classes = len(TAGS)
         self.data_iter_list = [RandomCycleIter(x) for x in self.cls_data_list] # repeated
-        self.num_samples = int(max(self.class_counts) * self.num_classes / reduce) # attention, ~ 1500(person) * 80
+        self.num_samples = int(max(self.class_counts) * self.num_classes / reduce) 
         self.num_samples_cls = num_samples_cls
         print('>>> Class Aware Sampler Built! Class number: {}, reduce {}'.format(num_classes, reduce))
 

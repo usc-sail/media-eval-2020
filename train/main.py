@@ -65,7 +65,7 @@ if __name__ == '__main__':
     # "Data path" should point to a directory structure of .npy files. See data_loader.py for how the data is parsed.
     parser.add_argument('--data_path', type=str, default='./data')
     # "Splits path" should point to a directory with files that define the training, validation, and test splits for the dataset
-    parser.add_argument('--splits_path', type=str, default='./../splits/')
+    parser.add_argument('--splits_path', type=str, default='./splits/')
     
 
     config = parser.parse_args()

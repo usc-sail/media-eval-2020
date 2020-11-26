@@ -143,7 +143,7 @@ class Solver(object):
     # Load the user-specified loss function
     def get_loss_function(self):
         if self.loss_function == 'bce':
-            loss = nn.BCELoss()
+            loss = nn.BCEWithLogitsLoss()
         elif self.loss_function == 'focal_loss':
             kwargs = {"alpha": 0.25, "gamma": 2.0}
             loss = losses.FocalLoss(**kwargs)
@@ -328,6 +328,7 @@ class Solver(object):
             out = out.detach().cpu()
 
             # estimate
+            out = torch.sigmoid(out)
             estimated = np.array(out).mean(axis=0)
             est_array.append(estimated)
 

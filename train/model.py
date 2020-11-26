@@ -114,7 +114,6 @@ class ShortChunkCNN_Res(nn.Module):
         x = self.bn_1(x)
         x = self.relu(x)
         x = self.dropout(x)
-        x = self.dense_2(x)
-        x = nn.Sigmoid()(x)
+        x = self.dense_2(x) 
 
-        return x
+        return x # Output logits
