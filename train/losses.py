@@ -197,6 +197,7 @@ def DB_loss(input: torch.Tensor, target: torch.Tensor, samples_per_cls, v_i = No
         v_i = torch.zeros(num_classes)
     else:
         v_i = torch.as_tensor(v_i)
+    assert v_i.shape[-1] == input.shape[-1]
     v_i = v_i.to(target.device)
     
     os_input = input - v_i # offset input by class-specific bias
